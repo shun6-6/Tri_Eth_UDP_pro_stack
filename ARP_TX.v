@@ -86,7 +86,7 @@ end
 //get ip and mac addr
 always @(posedge i_clk or posedge i_rst)begin
     if(i_rst)
-        r_dst_ip <= P_SRC_IP;
+        r_dst_ip <= P_DST_IP;
     else if(i_dst_ip_valid)
         r_dst_ip <= i_dst_ip;
     else
@@ -187,7 +187,7 @@ always @(posedge i_clk or posedge i_rst)begin
     else if(r_arp_cnt == P_ARP_LEN - 2)
         ro_mac_last <= 'd1;
     else
-        ro_mac_last <= ro_mac_last;
+        ro_mac_last <= 'd0;
 end
 
 
