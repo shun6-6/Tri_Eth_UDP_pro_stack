@@ -55,9 +55,9 @@ wire [31:0]     w_dst_ip        ;
 wire            w_dst_valid     ;
 
 ARP_TX#(
-    .P_DST_IP           ({8'd192,8'd168,8'd10,8'd0}           ),
-    .P_SRC_IP           ({8'd192,8'd168,8'd10,8'd1}           ),
-    .P_SRC_MAC          ({8'h00,8'h00,8'h00,8'h00,8'h00,8'h00})
+    .P_DST_IP           (P_DST_IP ),
+    .P_SRC_IP           (P_SRC_IP ),
+    .P_SRC_MAC          (P_SRC_MAC)
 )ARP_TX_u0(
     .i_clk              (i_clk          ),
     .i_rst              (i_rst          ),  
@@ -78,9 +78,9 @@ ARP_TX#(
 );
 
 ARP_RX#(
-    .P_DST_IP           ({8'd192,8'd168,8'd10,8'd0}           ),
-    .P_SRC_IP           ({8'd192,8'd168,8'd10,8'd1}           ),
-    .P_SRC_MAC          ({8'h00,8'h00,8'h00,8'h00,8'h00,8'h00})
+    .P_DST_IP           (P_DST_IP ),
+    .P_SRC_IP           (P_SRC_IP ),
+    .P_SRC_MAC          (P_SRC_MAC)
 )ARP_RX_u0(
     .i_clk              (i_clk          ),
     .i_rst              (i_rst          ),

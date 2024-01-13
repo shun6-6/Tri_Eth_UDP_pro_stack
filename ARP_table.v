@@ -63,7 +63,7 @@ reg             r_mac_ram_en        ;
 reg             r_mac_ram_we        ;
 reg  [2 :0]     r_mac_ram_addr      ;
 reg             w_ip_ram_dout_valid ;
-reg             w_mac_ram_dout_valid;
+//reg             w_mac_ram_dout_valid;
 reg             r_seek_ip_access    ;//在IP表当中匹配到当前查询IP
 reg  [2 :0]     r_access_ip_ram_addr;//匹配成功的IP在ram当中的地址
 reg             r_ip_ram_end        ;

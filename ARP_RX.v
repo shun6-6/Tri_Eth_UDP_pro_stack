@@ -53,7 +53,7 @@ localparam  P_ARP_OP_REPLY  = 16'd2;
 reg  [7 :0]     ri_mac_data     ;
 reg             ri_mac_last     ;
 reg             ri_mac_valid    ;
-reg             r_src_ip        ;
+reg  [31:0]     r_src_ip        ;
 reg             ro_trig_reply   ;
 reg  [47:0]     ro_dst_mac      ;
 reg  [31:0]     ro_dst_ip       ;
@@ -144,7 +144,7 @@ end
 always @(posedge i_clk or posedge i_rst)begin
     if(i_rst)
         ro_dst_valid <= 'd0;
-    else if(r_recv_arp_cnt == 27 && r_recv_dst_ip == r_src_ip)
+    else if(r_recv_arp_cnt == 28 && r_recv_dst_ip == r_src_ip)
         ro_dst_valid <= 'd1;
     else
         ro_dst_valid <= 'd0;
