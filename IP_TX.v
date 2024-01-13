@@ -105,6 +105,9 @@ assign  o_mac_data      =   r_ip_data       ;
 assign  o_mac_type      =   ro_mac_type     ;
 assign  o_mac_len       =   ri_send_len     ;
 assign  o_mac_last      =   ro_mac_last     ;
+
+assign  o_seek_ip       =   ro_seek_ip      ;
+assign  o_seek_valid    =   ro_seek_valid   ;
 /******************************always*****************************/
 //源ip地址可设置
 always @(posedge i_clk or posedge i_rst)begin

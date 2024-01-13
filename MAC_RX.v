@@ -88,7 +88,6 @@ reg  [15:0]     r_recv_type                 ;//0x0800:IP4 0x0806:ARP
 reg             r_crc_en                    ;
 reg             r_crc_en_1d                 ;
 reg             r_crc_rst                   ;
-reg  [31:0]     r_crc_result                ;
 reg  [31:0]     r_crc_recv                  ;
 /******************************wire*******************************/
 wire [31:0]     w_crc_result                ;
@@ -296,15 +295,7 @@ always @(posedge i_clk or posedge i_rst)begin
     else
         r_crc_en_1d <= r_crc_en;
 end
-//crc模块对接收数据的校验结果
-// always @(posedge i_clk or posedge i_rst)begin
-//     if(i_rst)
-//         r_crc_result <= 'd0;
-//     else if(!r_crc_en && r_crc_en)
-//         r_crc_result <= w_crc_result;
-//     else
-//         r_crc_result <= r_crc_result;
-// end
+
 //接收数据自带的crc结果
 always @(posedge i_clk or posedge i_rst)begin
     if(i_rst)

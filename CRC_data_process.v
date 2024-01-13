@@ -50,6 +50,7 @@ reg  [15:0]     ri_pre_type         ;
 reg  [7 :0]     ri_pre_data         ;
 reg             ri_pre_valid        ;
 reg             ri_pre_last         ;
+reg             ri_pre_last_1d      ;
 reg             ri_pre_crc_error    ;
 reg             ri_pre_crc_valid    ;
 reg  [15:0]     ro_post_type        ;
@@ -137,7 +138,8 @@ always @(posedge i_clk or posedge i_rst) begin
         ri_pre_valid     <= 'd0;
         ri_pre_last      <= 'd0;
         ri_pre_crc_error <= 'd0;
-        ri_pre_crc_valid <= 'd0;        
+        ri_pre_crc_valid <= 'd0;  
+        ri_pre_last_1d <= 'd0;      
     end
     else begin
         ri_pre_type      <= i_pre_type      ;
@@ -145,7 +147,8 @@ always @(posedge i_clk or posedge i_rst) begin
         ri_pre_valid     <= i_pre_valid     ;
         ri_pre_last      <= i_pre_last      ;
         ri_pre_crc_error <= i_pre_crc_error ;
-        ri_pre_crc_valid <= i_pre_crc_valid ;         
+        ri_pre_crc_valid <= i_pre_crc_valid ;   
+        ri_pre_last_1d <=  ri_pre_last;     
     end
 end
 //ram a端口写入数据
@@ -196,7 +199,7 @@ always @(posedge i_clk or posedge i_rst) begin
         r_ram_pre_addra <= 'd0;
     else if(r_crc_error_1d)
         r_ram_pre_addra <= r_ram_addra;
-    else if(ri_pre_last)
+    else if(!ri_pre_last && ri_pre_last_1d)
         r_ram_pre_addra <= r_ram_addra;
     else
         r_ram_pre_addra <= r_ram_pre_addra;
@@ -205,7 +208,7 @@ end
 always @(posedge i_clk or posedge i_rst) begin
     if(i_rst)
         r_data_actl_len <= 'd0;
-    else if(ri_pre_last)
+    else if(!ri_pre_last && ri_pre_last_1d)
         r_data_actl_len <= r_ram_addra - r_ram_pre_addra;//这才是一个数据包真正的长度
     else
         r_data_actl_len <= r_data_actl_len;
@@ -289,7 +292,7 @@ end
 always @(posedge i_clk or posedge i_rst) begin
     if(i_rst)
         r_ram_addrb <= 'd0; 
-    else if(r_ram_enb && (r_ram_addrb == r_fifo_rd_len))
+    else if(r_ram_enb && (r_ram_addrb == r_fifo_rd_len + 1))//实际数据长度大于ram地址加1
         r_ram_addrb <= r_ram_addrb;   
     else if(r_ram_enb & !r_ram_web)
         r_ram_addrb <= r_ram_addrb + 'd1;  

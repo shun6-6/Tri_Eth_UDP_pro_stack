@@ -189,8 +189,10 @@ end
 //计数器与valid同步开始计数，因此发送38个数据计数器就要计数到38而不是37,valid和last也不是-1和-2了，相应加1
 always @(posedge i_clk or posedge i_rst)begin
     if(i_rst)
-        ro_ip_valid <= 'd0;    
-    else if(r_udp_data_cnt == ri_send_udp_len + 8)
+        ro_ip_valid <= 'd0;  
+    else if((ri_send_udp_len < P_UDP_MIN_LEN) && (r_udp_data_cnt == P_UDP_MIN_LEN))
+        ro_ip_valid <= 'd0;  
+    else if((r_udp_data_cnt == ri_send_udp_len + 8) && (ri_send_udp_len >= P_UDP_MIN_LEN))
         ro_ip_valid <= 'd0;           
     else if(ri_send_udp_valid && !ri_send_udp_valid_1d)
         ro_ip_valid <= 'd1;          
@@ -200,8 +202,10 @@ end
 
 always @(posedge i_clk or posedge i_rst)begin
     if(i_rst)
-        ro_ip_last <= 'd0;           
-    else if(r_udp_data_cnt == ri_send_udp_len + 8 - 1)
+        ro_ip_last <= 'd0;  
+    else if((ri_send_udp_len < P_UDP_MIN_LEN) && (r_udp_data_cnt == P_UDP_MIN_LEN - 1))
+        ro_ip_last <='d1;          
+    else if((r_udp_data_cnt == ri_send_udp_len + 8 - 1) && (ri_send_udp_len >= P_UDP_MIN_LEN))
         ro_ip_last <='d1;          
     else 
         ro_ip_last <= 'd0;
@@ -209,8 +213,10 @@ end
 
 always @(posedge i_clk or posedge i_rst)begin
     if(i_rst)
-        ro_ip_len <= 'd0;           
-    else if(ri_send_udp_valid)
+        ro_ip_len <= 'd0; 
+    else if(ri_send_udp_valid && ri_send_udp_len < P_UDP_MIN_LEN)
+        ro_ip_len <= 'd18 + 8;             
+    else if(ri_send_udp_valid && ri_send_udp_len >= P_UDP_MIN_LEN)
         ro_ip_len <= ri_send_udp_len + 'd8;          
     else 
         ro_ip_len <= ro_ip_len;
