@@ -56,7 +56,8 @@ reg  [7 :0]     r_icmp_type     ;
 /******************************component**************************/
 
 /******************************assign*****************************/
-assign  o_trig_reply    =   ro_trig_reply;
+assign  o_trig_reply    =   ro_trig_reply   ;
+assign  o_trig_seq      =   ro_trig_seq     ;
 /******************************always*****************************/
 always @(posedge i_clk or posedge i_rst) begin
     if(i_rst) begin
