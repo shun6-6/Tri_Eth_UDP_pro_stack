@@ -73,8 +73,8 @@ reg             r_updata_access     ;
 reg  [2 :0]     r_updata_ram_addr   ;
 /******************************wire*******************************/
 wire [31:0]     w_ip_ram_dout       ;
-wire [31:0]     w_mac_ram_dout      ;
-wire            w_ip_ram_end_neg    ;
+wire [47:0]     w_mac_ram_dout      ;
+wire            w_ip_ram_end_pos    ;
 /******************************component**************************/
 RAM_IP RAM_IP_u0 (
   .clka     (i_clk          ),     
@@ -95,7 +95,7 @@ RAM_MAC RAM_MAC_u0 (
 /******************************assign*****************************/
 assign  o_active_mac        =   ro_active_mac  ;
 assign  o_active_valid      =   ro_active_valid;
-assign  w_ip_ram_end_neg    =   !r_ip_ram_end & r_ip_ram_end_1d;
+assign  w_ip_ram_end_pos    =   r_ip_ram_end & !r_ip_ram_end_1d;//上升沿
 /******************************always*****************************/
 always @(posedge i_clk or posedge i_rst)begin
     if(i_rst)
@@ -150,7 +150,7 @@ always @(*)begin
                 r_st_nxt = P_ST_IDLE;
         end
         P_ST_SEEK    : begin
-            if(r_seek_ip_access || (w_ip_ram_end_neg && !r_seek_ip_access))
+            if(r_seek_ip_access || (w_ip_ram_end_pos && !r_seek_ip_access))
                 r_st_nxt = P_ST_MAC;
             else
                 r_st_nxt = P_ST_SEEK;
@@ -158,7 +158,7 @@ always @(*)begin
         P_ST_UP_SEEK : begin
             if(r_updata_access)
                 r_st_nxt = P_ST_IDLE;
-            else if(w_ip_ram_end_neg && !r_updata_access)
+            else if(w_ip_ram_end_pos && !r_updata_access)
                 r_st_nxt = P_ST_UPDATA;
             else
                 r_st_nxt = P_ST_UP_SEEK;
@@ -198,6 +198,8 @@ always @(posedge i_clk or posedge i_rst)begin
         r_ip_ram_addr <= 'd0; 
     else if(r_st_cur == P_ST_SEEK && r_ip_ram_en && !r_ip_ram_we)
         r_ip_ram_addr <= r_ip_ram_addr + 'd1; 
+    else if(r_st_cur == P_ST_UP_SEEK && r_ip_ram_en && !r_ip_ram_we)
+        r_ip_ram_addr <= r_ip_ram_addr + 'd1; 
     else if(r_st_cur == P_ST_UPDATA)
         r_ip_ram_addr <= r_updata_ram_addr; 
     else
@@ -217,7 +219,7 @@ always @(posedge i_clk or posedge i_rst)begin
         r_mac_ram_en   <= 'd1;
         r_mac_ram_we   <= 'd1;       
     end
-    else if(w_ip_ram_dout == r_seek_ip && w_ip_ram_dout_valid)begin
+    else if(w_ip_ram_dout == r_seek_ip && w_ip_ram_dout_valid && r_st_cur == P_ST_SEEK)begin
         r_mac_ram_en   <= 'd1;
         r_mac_ram_we   <= 'd0;       
     end
@@ -244,7 +246,9 @@ end
 always @(posedge i_clk or posedge i_rst)begin
     if(i_rst)
         w_ip_ram_dout_valid <= 'd0;
-    else if(r_ip_ram_en && !r_ip_ram_we && !r_seek_ip_access)
+    else if((r_ip_ram_en && !r_ip_ram_we && !r_seek_ip_access) && r_st_cur == P_ST_SEEK)
+        w_ip_ram_dout_valid <= 'd1;
+    else if((r_ip_ram_en && !r_ip_ram_we && !r_updata_access) && r_st_cur == P_ST_UP_SEEK)
         w_ip_ram_dout_valid <= 'd1;
     else
         w_ip_ram_dout_valid <= 'd0;   
@@ -255,7 +259,7 @@ always @(posedge i_clk or posedge i_rst)begin
         r_seek_ip_access <= 'd0;
     else if(r_st_cur == P_ST_IDLE)
         r_seek_ip_access <= 'd0;
-    else if(w_ip_ram_dout == r_seek_ip && w_ip_ram_dout_valid)
+    else if(w_ip_ram_dout == r_seek_ip && w_ip_ram_dout_valid && r_st_cur == P_ST_SEEK)
         r_seek_ip_access <= 'd1;
     else
         r_seek_ip_access <= r_seek_ip_access;
@@ -264,9 +268,11 @@ end
 always @(posedge i_clk or posedge i_rst)begin
     if(i_rst)
         r_ip_ram_end <= 'd0;
-    else if(r_st_cur != P_ST_SEEK)
+    else if(r_st_cur == P_ST_IDLE)
         r_ip_ram_end <= 'd0;
     else if(r_st_cur == P_ST_SEEK && r_ip_ram_addr == P_ST_RAM_DEPTH - 1)
+        r_ip_ram_end <= 'd1;
+    else if(r_st_cur == P_ST_UP_SEEK && r_ip_ram_addr == P_ST_RAM_DEPTH - 1)
         r_ip_ram_end <= 'd1;
     else
         r_ip_ram_end <= r_ip_ram_end;
@@ -284,7 +290,7 @@ always @(posedge i_clk or posedge i_rst)begin
         r_access_ip_ram_addr <= 'd0;
     else if(r_st_cur == P_ST_IDLE)
         r_access_ip_ram_addr <= 'd0;
-    else if(w_ip_ram_dout_valid && !r_seek_ip_access)
+    else if(w_ip_ram_dout_valid && w_ip_ram_dout != r_seek_ip && r_st_cur == P_ST_SEEK && !r_seek_ip_access)
         r_access_ip_ram_addr <= r_access_ip_ram_addr + 1;
     else
         r_access_ip_ram_addr <= r_access_ip_ram_addr;  

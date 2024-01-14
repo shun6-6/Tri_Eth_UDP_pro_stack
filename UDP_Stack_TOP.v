@@ -303,10 +303,10 @@ Ethernet_MAC#(
     .i_clk                  (i_clk              ),
     .i_rst                  (i_rst              ),
   
-    .i_src_mac              (w_tab_dst_mac      ),
-    .i_src_mac_valid        (w_tab_dst_valid    ),
-    .i_dest_mac             (i_dest_mac         ),
-    .i_dest_mac_valid       (i_dest_mac_valid   ),
+    .i_src_mac              (i_src_mac          ),
+    .i_src_mac_valid        (i_src_mac_valid    ),
+    .i_dest_mac             (w_tab_dst_mac      ),
+    .i_dest_mac_valid       (w_tab_dst_valid    ),
 
     .i_send_type            (w_ip_arp_type      ),
     .i_send_data            (w_ip_arp_data      ),
