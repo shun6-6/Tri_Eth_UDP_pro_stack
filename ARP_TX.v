@@ -173,7 +173,7 @@ end
 always @(posedge i_clk or posedge i_rst)begin
     if(i_rst)
         ro_mac_valid <= 'd0;
-    else if(r_arp_cnt == P_ARP_LEN - 1)
+    else if(ro_mac_last)
         ro_mac_valid <= 'd0;
     else if(ri_trig_reply || ri_active_req)
         ro_mac_valid <= 'd1;
@@ -184,7 +184,7 @@ end
 always @(posedge i_clk or posedge i_rst)begin
     if(i_rst)
         ro_mac_last <= 'd0;
-    else if(r_arp_cnt == P_ARP_LEN - 2)
+    else if(r_arp_cnt == P_ARP_LEN - 1)
         ro_mac_last <= 'd1;
     else
         ro_mac_last <= 'd0;
