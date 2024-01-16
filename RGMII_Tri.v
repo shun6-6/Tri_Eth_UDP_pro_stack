@@ -29,6 +29,7 @@ module RGMII_Tri(
     output [3:0]    o_txd       ,
     output          o_tx_ctrl   ,
     /*-----data port-----*/
+    output          o_rxc       ,
     input           i_speed1000 ,
     input  [7 :0]   i_tx_data   ,
     input           i_tx_valid  , 
@@ -217,6 +218,8 @@ ODDRE1_txctrl (
 assign o_rx_data    =   ro_rx_data  ;
 assign o_rx_valid   =   ro_rx_valid ;
 assign o_rx_end     =   ro_rx_end   ;
+
+assign o_rxc        =   w_rxc_bufr  ;
 /******************************always*****************************/
 always @(posedge w_rxc_bufr)begin
     if((&w_recv_valid) && !i_speed1000)
