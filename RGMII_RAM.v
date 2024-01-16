@@ -55,6 +55,7 @@ reg             r_fifo_rden  = 0    ;
 reg  [10:0]     r_recv_len   = 0    ;
 reg             ri_rx_valid  = 0    ;
 reg             r_read_run   = 0    ;
+reg  [15:0]     r_read_cnt   = 0    ;
 /******************************wire*******************************/
 wire [7 :0]     w_ram_dout_b        ;
 wire [10:0]     w_fifo_dout         ;
@@ -121,35 +122,37 @@ end
 
 //==============udp stack clock=================//
 always @(posedge i_udp_stack_clk)begin
-    if()
-        
-    else if()
-
+    if(r_read_cnt == w_fifo_dout)
+        r_read_run <= 'd0;
+    else if(!w_fifo_empty)
+        r_read_run <= 'd1;
     else
+        r_read_run <= r_read_run;
 end
 
 always @(posedge i_udp_stack_clk)begin
-    if()
-        
-    else if()
-
+    if(!w_fifo_empty && !r_read_run && !r_fifo_rden)
+        r_fifo_rden <= 'd1; 
     else
+        r_fifo_rden <= 'd0; 
 end
 
 always @(posedge i_udp_stack_clk)begin
-    if()
-        
-    else if()
-
+    if(r_read_cnt == w_fifo_dout)
+        r_read_cnt <= 'd0';
+    else if(r_ram_en_b)
+        r_read_cnt <= r_read_cnt + 'd1;
     else
+        r_read_cnt <= r_read_cnt;
 end
 
 always @(posedge i_udp_stack_clk)begin
-    if()
-        
+    if(r_fifo_rden)
+        r_ram_en_b <= 'd1;
     else if()
-
+        r_ram_en_b <= 'd0;
     else
+        r_ram_en_b <= r_ram_en_b;
 end
 
 endmodule
