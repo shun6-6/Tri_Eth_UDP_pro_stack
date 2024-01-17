@@ -68,7 +68,7 @@ ARP_TX#(
     .i_src_ip_valid     (i_src_ip_valid ),
     .i_src_mac          (i_src_mac      ), 
     .i_src_mac_valid    (i_src_mac_valid),  
-
+    .i_reply_mac        (w_dst_mac      ),
     .i_trig_reply       (w_trig_reply   ),
     .i_active_req       (0), 
 

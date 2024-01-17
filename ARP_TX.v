@@ -34,7 +34,7 @@ module ARP_TX#(
     input           i_src_ip_valid  ,
     input   [47:0]  i_src_mac       , 
     input           i_src_mac_valid ,   
-
+    input   [47:0]  i_reply_mac     ,
     input           i_trig_reply    ,
     input           i_active_req    ,
     /*----MAC port----*/     
@@ -61,6 +61,7 @@ reg             ri_active_req   ;
 reg  [7 :0]     ro_mac_data     ;
 reg             ro_mac_last     ;
 reg             ro_mac_valid    ;
+reg  [47:0]     ri_reply_mac    ;
 //组包
 reg  [15:0]     r_arp_cnt       ;//组包计数器
 reg  [15:0]     r_arp_op        ;
@@ -135,6 +136,13 @@ end
 
 always @(posedge i_clk or posedge i_rst)begin
     if(i_rst)
+        ri_reply_mac <= 'd0;
+    else
+        ri_reply_mac <= i_reply_mac;
+end
+
+always @(posedge i_clk or posedge i_rst)begin
+    if(i_rst)
         ro_mac_data <= 'd0;
     else case (r_arp_cnt)
         0       : ro_mac_data <= 8'h00;             //硬件类型，对以太网，值为1
@@ -155,12 +163,12 @@ always @(posedge i_clk or posedge i_rst)begin
         15      : ro_mac_data <= r_src_ip[23:16];
         16      : ro_mac_data <= r_src_ip[15: 8];
         17      : ro_mac_data <= r_src_ip[7 : 0];
-        18      : ro_mac_data <= 8'hFF;
-        19      : ro_mac_data <= 8'hFF; 
-        20      : ro_mac_data <= 8'hFF;
-        21      : ro_mac_data <= 8'hFF;
-        22      : ro_mac_data <= 8'hFF;
-        23      : ro_mac_data <= 8'hFF;
+        18      : ro_mac_data <= r_arp_op == P_ARP_OP_REPLY ? ri_reply_mac[47:40] : 8'h00;
+        19      : ro_mac_data <= r_arp_op == P_ARP_OP_REPLY ? ri_reply_mac[39:32] : 8'h00; 
+        20      : ro_mac_data <= r_arp_op == P_ARP_OP_REPLY ? ri_reply_mac[31:24] : 8'h00;
+        21      : ro_mac_data <= r_arp_op == P_ARP_OP_REPLY ? ri_reply_mac[23:16] : 8'h00;
+        22      : ro_mac_data <= r_arp_op == P_ARP_OP_REPLY ? ri_reply_mac[15: 8] : 8'h00;
+        23      : ro_mac_data <= r_arp_op == P_ARP_OP_REPLY ? ri_reply_mac[7 : 0] : 8'h00;
         24      : ro_mac_data <= r_dst_ip[31:24];
         25      : ro_mac_data <= r_dst_ip[23:16];
         26      : ro_mac_data <= r_dst_ip[15: 8];
