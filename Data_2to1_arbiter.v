@@ -20,7 +20,9 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module Data_2to1_arbiter(
+module Data_2to1_arbiter#(
+    parameter       P_INTERVAL_LEN  = 10
+)(
     input           i_clk               ,
     input           i_rst               ,
 
@@ -84,6 +86,7 @@ reg             r_fifo_rden_a_pos_1d;
 reg             r_fifo_rden_b_pos_1d;
 //arb
 reg  [1 :0]     r_arbiter       ;
+reg  [15:0]     r_interval_cnt  ;
 /******************************wire*******************************/
 wire [7 :0]     w_fifo_douta    ;
 wire            w_fifo_fulla    ;
@@ -194,15 +197,28 @@ always @(posedge i_clk or posedge i_rst)begin
     end
 end
 
+always @(posedge i_clk or posedge i_rst)begin
+    if(i_rst)
+        r_interval_cnt <= 'd0;
+    else if(r_arbiter != 0)
+        r_interval_cnt <= 0;
+    else if(r_interval_cnt == P_INTERVAL_LEN)
+        r_interval_cnt <= r_interval_cnt;
+    else if(r_arbiter == 0)
+        r_interval_cnt <= r_interval_cnt + 1;
+    else
+        r_interval_cnt <= 'd0;
+end
+
 //每次发完数据仲裁信号归零，当仲裁信号为0时候才会响应下一次
 always @(posedge i_clk or posedge i_rst)begin
     if(i_rst)
         r_arbiter <= 'd0;
     else if(ro_last)
         r_arbiter <= 'd0;
-    else if(!w_fifo_emptya && r_arbiter == 0)
+    else if(!w_fifo_emptya && r_arbiter == 0 && r_interval_cnt == P_INTERVAL_LEN)
         r_arbiter <= 'd1;
-    else if(!w_fifo_emptyb && r_arbiter == 0)
+    else if(!w_fifo_emptyb && r_arbiter == 0 && r_interval_cnt == P_INTERVAL_LEN)
         r_arbiter <= 'd2;
     else
         r_arbiter <= r_arbiter;
