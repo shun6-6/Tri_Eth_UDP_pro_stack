@@ -33,7 +33,9 @@ module Ethernet_MAC#(
     input           i_src_mac_valid     ,
     input  [47:0]   i_dest_mac          ,
     input           i_dest_mac_valid    ,
-    /*----data port----*/   
+    /*----data port----*/ 
+    input           i_udp_valid         ,
+    output          o_udp_ready         ,  
     input  [15:0]   i_send_type         ,
     input  [7 :0]   i_send_data         ,
     input  [15:0]   i_send_len          ,
@@ -83,6 +85,8 @@ MAC_TX#(
     .i_dest_mac             (i_dest_mac             ),
     .i_dest_mac_valid       (i_dest_mac_valid       ),
             
+    .i_udp_valid            (i_udp_valid            ),
+    .o_udp_ready            (o_udp_ready            ),
     .i_send_type            (i_send_type            ),
     .i_send_data            (i_send_data            ),
     .i_send_len             (i_send_len             ),

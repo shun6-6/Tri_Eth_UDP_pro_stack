@@ -183,7 +183,7 @@ always @(posedge i_clk or posedge i_rst)begin
         r_mac_access <= 'd1;
     else if(r_recv_mac != r_src_mac && r_recv_cnt == 13)
         r_mac_access <= 'd0;
-    else if(r_recv_mac == r_src_mac && r_recv_cnt == 13)
+    else if(((r_recv_mac == r_src_mac) || &r_recv_mac) && r_recv_cnt == 13)
         r_mac_access <= 'd1;
     else 
         r_mac_access <= r_mac_access;

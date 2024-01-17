@@ -33,6 +33,8 @@ module MAC_TX#(
     input  [47:0]   i_dest_mac          ,
     input           i_dest_mac_valid    ,
     /*----data port----*/   
+    input           i_udp_valid         ,
+    output          o_udp_ready         ,
     input  [15:0]   i_send_type         ,
     input  [7 :0]   i_send_data         ,
     input  [15:0]   i_send_len          ,
@@ -45,7 +47,7 @@ module MAC_TX#(
 /******************************function***************************/
 
 /******************************parameter**************************/
-
+localparam      P_GAP_LEN   =   10;
 /******************************port*******************************/
 
 /******************************machine****************************/
@@ -61,6 +63,11 @@ reg             ri_send_valid           ;
 reg             ri_send_valid_1d        ;
 reg  [7 :0]     ro_gmii_data            ;
 reg             ro_gmii_valid           ;
+reg             ro_gmii_valid_1d        ;
+
+reg             ri_udp_valid            ;
+reg             ro_udp_ready            ;
+reg  [15:0]     r_gap_cnt               ;
 //组帧
 reg  [15:0]     r_mac_pkt_cnt           ;//组帧计数器
 reg  [7 :0]     r_mac_data              ;
@@ -85,6 +92,10 @@ wire            w_send_valid_pos        ;
 wire            w_send_valid_neg        ;
 //crc
 wire [31:0]     w_crc_result            ;
+
+wire [15:0]     w_fifo_len_dout         ;
+wire            w_fifo_len_full         ;
+wire            w_fifo_len_empty        ;
 /******************************component**************************/
 MAC_TX_FIFO_8x512 MAC_TX_FIFO_8x512_u0 (
   .clk              (i_clk          ), 
@@ -98,6 +109,17 @@ MAC_TX_FIFO_8x512 MAC_TX_FIFO_8x512_u0 (
   .wr_rst_busy      (), 
   .rd_rst_busy      ()  
 );
+
+FIFO_16x64 FIFO_16x64_len (
+  .clk              (i_clk          ),
+  .din              (i_send_len     ),
+  .wr_en            (i_send_valid && !ri_send_valid),
+  .rd_en            (r_fifo_rden && !r_fifo_rden_1d),
+  .dout             (w_fifo_len_dout ),
+  .full             (w_fifo_len_full ),
+  .empty            (w_fifo_len_empty)
+);
+
 //crc check
 CRC32_D8 CRC32_D8_u0(
 	.i_clk	(i_clk          ),
@@ -109,8 +131,10 @@ CRC32_D8 CRC32_D8_u0(
 /******************************assign*****************************/
 assign  o_gmii_data         =   ro_gmii_data    ;
 assign  o_gmii_valid        =   ro_gmii_valid   ;
-assign  w_send_valid_pos    =   ri_send_valid & !ri_send_valid_1d;
+//assign  w_send_valid_pos    =   ri_send_valid & !ri_send_valid_1d;
+assign  w_send_valid_pos    =   (r_gap_cnt == P_GAP_LEN) && (!w_fifo_len_empty);
 assign  w_send_valid_neg    =   !ri_send_valid & ri_send_valid_1d;  
+assign  o_udp_ready         =   ro_udp_ready    ;
 /******************************always*****************************/
 //源mac地址可设置
 always @(posedge i_clk or posedge i_rst)begin
@@ -180,12 +204,12 @@ always @(posedge i_clk or posedge i_rst)begin
         case (r_mac_pkt_cnt)
             0,1,2,3,4,5,6   : r_mac_data <= 8'h55;
             7               : r_mac_data <= 8'hD5;
-            8               : r_mac_data <= r_dest_mac[47:40];
-            9               : r_mac_data <= r_dest_mac[39:32];
-            10              : r_mac_data <= r_dest_mac[31:24];
-            11              : r_mac_data <= r_dest_mac[23:16];
-            12              : r_mac_data <= r_dest_mac[15: 8];
-            13              : r_mac_data <= r_dest_mac[7 : 0];
+            8               : r_mac_data <= ri_send_type == 16'h0806 ? 8'hff : r_dest_mac[47:40];
+            9               : r_mac_data <= ri_send_type == 16'h0806 ? 8'hff : r_dest_mac[39:32];
+            10              : r_mac_data <= ri_send_type == 16'h0806 ? 8'hff : r_dest_mac[31:24];
+            11              : r_mac_data <= ri_send_type == 16'h0806 ? 8'hff : r_dest_mac[23:16];
+            12              : r_mac_data <= ri_send_type == 16'h0806 ? 8'hff : r_dest_mac[15: 8];
+            13              : r_mac_data <= ri_send_type == 16'h0806 ? 8'hff : r_dest_mac[7 : 0];
             14              : r_mac_data <= r_src_mac[47:40];
             15              : r_mac_data <= r_src_mac[39:32];
             16              : r_mac_data <= r_src_mac[31:24];
@@ -209,7 +233,7 @@ end
 always @(posedge i_clk or posedge i_rst)begin
     if(i_rst)
         r_mac_data_valid <= 'd0;                 
-    else if(r_mac_fifo_rd_cnt == ri_send_len + 1)
+    else if(r_mac_fifo_rd_cnt == w_fifo_len_dout + 1)
         r_mac_data_valid <= 'd0;    
     else if(w_send_valid_pos)
         r_mac_data_valid <= 'd1;         
@@ -220,7 +244,7 @@ end
 always @(posedge i_clk or posedge i_rst)begin
     if(i_rst)
         r_mac_fifo_rd_cnt <= 'd0;                 
-    else if(r_mac_fifo_rd_cnt == ri_send_len + 1)
+    else if(r_mac_fifo_rd_cnt == w_fifo_len_dout + 1)
         r_mac_fifo_rd_cnt <= 'd0;    
     else if(r_fifo_rden || r_mac_fifo_rd_cnt)
         r_mac_fifo_rd_cnt <= r_mac_fifo_rd_cnt + 1;         
@@ -238,7 +262,7 @@ end
 always @(posedge i_clk or posedge i_rst)begin
     if(i_rst)
         r_fifo_rden <= 'd0;                 
-    else if(r_mac_fifo_rd_cnt == ri_send_len - 1)
+    else if(r_mac_fifo_rd_cnt == w_fifo_len_dout - 1)
         r_fifo_rden <= 'd0;    
     else if(r_mac_pkt_cnt == 20)
         r_fifo_rden <= 'd1;         
@@ -323,6 +347,42 @@ always @(posedge i_clk or posedge i_rst)begin
         ro_gmii_valid <= 'd1;  
     else 
         ro_gmii_valid <= ro_gmii_valid;  
+end
+   
+
+always @(posedge i_clk or posedge i_rst)begin
+    if(i_rst)begin
+        ri_udp_valid <= 'd0;
+        ro_gmii_valid_1d <= 'd0;
+    end
+    else begin
+        ri_udp_valid <= i_udp_valid;
+        ro_gmii_valid_1d <= ro_gmii_valid;
+    end
+end
+
+always @(posedge i_clk or posedge i_rst)begin
+    if(i_rst)
+        ro_udp_ready <= 'd1;  
+    else if(r_mac_fifo_rd_cnt == w_fifo_len_dout - 2) 
+        ro_udp_ready <= 'd1;  
+    else if(i_udp_valid)
+        ro_udp_ready <= 'd0;  
+    else 
+        ro_udp_ready <= ro_udp_ready;  
+end
+
+always @(posedge i_clk or posedge i_rst)begin
+    if(i_rst)
+        r_gap_cnt <= 'd0;  
+    else if(ro_gmii_valid) 
+        r_gap_cnt <= 'd0; 
+    else if(r_gap_cnt == P_GAP_LEN) 
+        r_gap_cnt <= 'd1;  
+    else if(!ro_gmii_valid && ro_gmii_valid_1d)
+        r_gap_cnt <= r_gap_cnt + 'd1;  
+    else 
+        r_gap_cnt <= r_gap_cnt;  
 end
 
 endmodule

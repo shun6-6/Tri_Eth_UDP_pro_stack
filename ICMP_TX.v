@@ -84,8 +84,10 @@ end
 always @(posedge i_clk or posedge i_rst) begin
     if(i_rst)
         r_check_cnt <= 'd0;
-    else if(r_icmp_cnt == 3)
+    else if(r_icmp_cnt == P_ICMP_LEN - 1)
         r_check_cnt <= 'd0;
+    else if(r_check_cnt == 3)
+        r_check_cnt <= r_check_cnt + 'd1;
     else if(ri_trig_reply || r_check_cnt)
         r_check_cnt <= r_check_cnt + 'd1;
     else

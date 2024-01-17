@@ -127,7 +127,9 @@ wire            w_seek_valid        ;
 wire [47:0]     w_tab_dst_mac       ;
 wire            w_tab_dst_valid     ;
 
-assign o_send_ready = !(w_nxt_udp_icmp_stop & w_nxt_ip_arp_stop);
+wire            w_udp_ready         ;
+
+assign o_send_ready = !w_nxt_udp_icmp_stop & !w_nxt_ip_arp_stop & w_udp_ready;
 
 UDP_module#(
     .P_DST_UDP_PORT     (P_DST_UDP_PORT),
@@ -278,7 +280,7 @@ Data_2to1_arbiter Data_arbiter_IP_ARP(
     .i_data_a               (w_arp2mac_data     ),
     .i_valid_a              (w_arp2mac_valid    ),
     .i_last_a               (w_arp2mac_last     ),
-    .i_len_a                (16'd46             ),
+    .i_len_a                (16'd50             ),
     .i_type_a               (16'h0806           ),
  
     .i_data_b               (w_ip2mac_data      ),
@@ -308,6 +310,8 @@ Ethernet_MAC#(
     .i_dest_mac             (w_tab_dst_mac      ),
     .i_dest_mac_valid       (w_tab_dst_valid    ),
 
+    .i_udp_valid            (i_send_udp_valid   ),
+    .o_udp_ready            (w_udp_ready        ),
     .i_send_type            (w_ip_arp_type      ),
     .i_send_data            (w_ip_arp_data      ),
     .i_send_len             (w_ip_arp_len       ),
