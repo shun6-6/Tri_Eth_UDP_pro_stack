@@ -62,17 +62,21 @@ reg  [7 :0]     ro_mac_data     ;
 reg             ro_mac_last     ;
 reg             ro_mac_valid    ;
 reg  [47:0]     ri_reply_mac    ;
+
+reg  [15:0]     r_act_ini_cnt   ;//上电主动arp计数器
 //组包
 reg  [15:0]     r_arp_cnt       ;//组包计数器
 reg  [15:0]     r_arp_op        ;
 /******************************wire*******************************/
-
+wire            w_active        ;
 /******************************component**************************/
 
 /******************************assign*****************************/
 assign  o_mac_data  =   ro_mac_data     ;
 assign  o_mac_last  =   ro_mac_last     ;
 assign  o_mac_valid =   ro_mac_valid    ;
+
+assign  w_active    =   r_act_ini_cnt == 10;
 /******************************always*****************************/
 always @(posedge i_clk or posedge i_rst)begin
     if(i_rst)begin 
@@ -81,7 +85,7 @@ always @(posedge i_clk or posedge i_rst)begin
     end
     else begin
         ri_trig_reply <= i_trig_reply;
-        ri_active_req <= i_active_req; 
+        ri_active_req <= i_active_req || w_active; 
     end
 end
 //get ip and mac addr
@@ -121,6 +125,15 @@ always @(posedge i_clk or posedge i_rst)begin
         r_arp_cnt <= r_arp_cnt + 'd1;
     else
         r_arp_cnt <= r_arp_cnt;
+end
+
+always @(posedge i_clk or posedge i_rst)begin
+    if(i_rst)
+        r_act_ini_cnt <= 'd0;
+    else if(r_act_ini_cnt < 11)
+        r_act_ini_cnt <= r_act_ini_cnt + 1;
+    else
+        r_act_ini_cnt <= r_act_ini_cnt;
 end
 
 always @(posedge i_clk or posedge i_rst)begin
