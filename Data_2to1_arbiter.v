@@ -315,7 +315,7 @@ end
 always @(posedge i_clk or posedge i_rst)begin
     if(i_rst)
         ro_nxt_frame_stop <= 'd0;
-    else if(ro_nxt_frame_stop && r_arbiter == 2 && !w_fifo_emptya)
+    else if(ro_nxt_frame_stop && r_arbiter == 2 && w_fifo_emptyb)
         ro_nxt_frame_stop <= 'd0;
     else if(r_arbiter == 1 && !w_fifo_emptyb)//发arp包并且IP FIFO有数据的时候，停止下一帧IP输入
         ro_nxt_frame_stop <= 'd1;

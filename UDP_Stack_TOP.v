@@ -129,7 +129,7 @@ wire            w_tab_dst_valid     ;
 
 wire            w_udp_ready         ;
 
-assign o_send_ready = !w_nxt_udp_icmp_stop & !w_nxt_ip_arp_stop & w_udp_ready;
+assign o_send_ready = (!w_nxt_udp_icmp_stop) & (!w_nxt_ip_arp_stop) & w_udp_ready;
 
 UDP_module#(
     .P_DST_UDP_PORT     (P_DST_UDP_PORT),

@@ -30,12 +30,16 @@ module GMII2RGMII_drive(
     output          o_tx_ctrl       ,
     /*-----UDP stack port-----*/
     //output          o_rxc           ,
-    input           i_speed1000     ,
+    //input           i_speed1000     ,
     input           i_udp_stack_clk ,
     input  [7 :0]   i_gmii_tx_data  ,
     input           i_gmii_tx_valid ,
     output [7 :0]   o_gmii_rx_data  ,
-    output          o_gmii_rx_valid 
+    output          o_gmii_rx_valid ,
+    
+    output [1 :0]   o_speed         ,
+    output          o_link          ,
+    output          o_user_clk       
 );
 
 wire [7 :0]     w_rx_data   ;
@@ -46,6 +50,12 @@ wire [7 :0]     w_tx_data   ;
 wire            w_tx_valid  ;
 
 wire            w_rxc       ;//经过bufr的rxc时钟
+wire [1 :0]     w_speed     ;
+wire            w_speed1000 ;
+
+assign o_user_clk   = w_rxc     ;
+assign o_speed      = w_speed   ;
+assign w_speed1000  = w_speed == 2'b10 ? 1 : 0;
 
 RGMII_Tri RGMII_Tri_u0(
     .i_rxc              (i_rxc          ),
@@ -56,13 +66,15 @@ RGMII_Tri RGMII_Tri_u0(
     .o_tx_ctrl          (o_tx_ctrl      ),
 
     .o_rxc              (w_rxc          ),
-    .i_speed1000        (i_speed1000    ),
+    //.i_speed1000        (i_speed1000    ),
     .i_tx_data          (w_tx_data      ),
     .i_tx_valid         (w_tx_valid     ), 
 
     .o_rx_data          (w_rx_data      ),
     .o_rx_valid         (w_rx_valid     ),        
-    .o_rx_end           (w_rx_end       )
+    .o_rx_end           (w_rx_end       ),
+    .o_speed            (w_speed        ),
+    .o_link             (o_link         )
 );
 
 RGMII_RAM RGMII_RAM_u0(
@@ -76,7 +88,7 @@ RGMII_RAM RGMII_RAM_u0(
     .o_tx_data          (w_tx_data      ),
     .o_tx_valid         (w_tx_valid     ),  
 
-    .i_speed1000        (i_speed1000    ),
+    .i_speed1000        (1    ),
     .i_rx_data          (w_rx_data      ),
     .i_rx_valid         (w_rx_valid     ),      
     .i_rx_end           (w_rx_end       )

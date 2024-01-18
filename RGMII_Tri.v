@@ -30,13 +30,16 @@ module RGMII_Tri(
     output          o_tx_ctrl   ,
     /*-----data port-----*/
     output          o_rxc       ,
-    input           i_speed1000 ,
+    //input           i_speed1000 ,
     input  [7 :0]   i_tx_data   ,
     input           i_tx_valid  , 
 
     output [7 :0]   o_rx_data   ,
     output          o_rx_valid  ,      
-    output          o_rx_end    
+    output          o_rx_end    ,
+
+    output [1 :0]   o_speed     ,
+    output          o_link      
 );
 /******************************function***************************/
 
@@ -55,6 +58,9 @@ reg             r_10_100_rx_cnt = 0     ;
 reg  [7 :0]     ri_tx_data      = 0     ;
 reg             ri_tx_valid     = 0     ;
 reg             r_10_100_tx_cnt = 0     ; 
+
+reg  [1 :0]     ro_speed        = 0     ;
+reg             ro_link         = 0     ;
 /******************************wire*******************************/
 wire            w_rxc_bufio         ;
 wire            w_rxc_idelay        ;
@@ -68,36 +74,39 @@ wire [3 :0]     w_send_d1           ;//上升沿数据
 wire [3 :0]     w_send_d2           ;//下降沿数据
 wire            w_send_valid_d1     ;
 wire            w_send_valid_d2     ;    
+
+wire            i_speed1000         ;
+assign          i_speed1000 = 1     ;
 /******************************component**************************/
 //================rgmii rx=====================//
-IDELAYE3 #(
-   .CASCADE             ("NONE"         ),  // Cascade setting (MASTER, NONE, SLAVE_END, SLAVE_MIDDLE)
-   .DELAY_FORMAT        ("TIME"         ),  // Units of the DELAY_VALUE (COUNT, TIME)
-   .DELAY_SRC           ("IDATAIN"      ),  // Delay input (DATAIN, IDATAIN)
-   .DELAY_TYPE          ("FIXED"        ),  // Set the type of tap delay line (FIXED, VARIABLE, VAR_LOAD)
-   .DELAY_VALUE         (0              ),  // Input delay value setting
-   .IS_CLK_INVERTED     (1'b0           ),  // Optional inversion for CLK
-   .IS_RST_INVERTED     (1'b0           ),  // Optional inversion for RST
-   .REFCLK_FREQUENCY    (300.0          ),  // IDELAYCTRL clock input frequency in MHz (200.0-800.0)
-   .SIM_DEVICE          ("ULTRASCALE"   ),  // Set the device version for simulation functionality (ULTRASCALE)
-   .UPDATE_MODE         ("ASYNC"        )   // Determines when updates to the delay will take effect (ASYNC, MANUAL, SYNC)
-)
-IDELAYE3_inst (
-   .CASC_OUT            (               ),  // 1-bit output: Cascade delay output to ODELAY input cascade
-   .CNTVALUEOUT         (               ),  // 9-bit output: Counter value output
-   .DATAOUT             (w_rxc_idelay   ),  // 1-bit output: Delayed data output
-   .CASC_IN             (               ),  // 1-bit input: Cascade delay input from slave ODELAY CASCADE_OUT
-   .CASC_RETURN         (               ),  // 1-bit input: Cascade delay returning from slave ODELAY DATAOUT
-   .CE                  (               ),  // 1-bit input: Active-High enable increment/decrement input
-   .CLK                 (               ),  // 1-bit input: Clock input
-   .CNTVALUEIN          (               ),  // 9-bit input: Counter value input
-   .DATAIN              (               ),  // 1-bit input: Data input from the logic
-   .EN_VTC              (               ),  // 1-bit input: Keep delay constant over VT
-   .IDATAIN             (w_rxc_bufio    ),  // 1-bit input: Data input from the IOBUF
-   .INC                 (               ),  // 1-bit input: Increment / Decrement tap delay input
-   .LOAD                (               ),  // 1-bit input: Load DELAY_VALUE input
-   .RST                 (               )   // 1-bit input: Asynchronous Reset to the DELAY_VALUE
-);
+// IDELAYE3 #(
+//    .CASCADE             ("NONE"         ),  // Cascade setting (MASTER, NONE, SLAVE_END, SLAVE_MIDDLE)
+//    .DELAY_FORMAT        ("TIME"         ),  // Units of the DELAY_VALUE (COUNT, TIME)
+//    .DELAY_SRC           ("IDATAIN"      ),  // Delay input (DATAIN, IDATAIN)
+//    .DELAY_TYPE          ("FIXED"        ),  // Set the type of tap delay line (FIXED, VARIABLE, VAR_LOAD)
+//    .DELAY_VALUE         (0              ),  // Input delay value setting
+//    .IS_CLK_INVERTED     (1'b0           ),  // Optional inversion for CLK
+//    .IS_RST_INVERTED     (1'b0           ),  // Optional inversion for RST
+//    .REFCLK_FREQUENCY    (300.0          ),  // IDELAYCTRL clock input frequency in MHz (200.0-800.0)
+//    .SIM_DEVICE          ("ULTRASCALE"   ),  // Set the device version for simulation functionality (ULTRASCALE)
+//    .UPDATE_MODE         ("ASYNC"        )   // Determines when updates to the delay will take effect (ASYNC, MANUAL, SYNC)
+// )
+// IDELAYE3_inst (
+//    .CASC_OUT            (               ),  // 1-bit output: Cascade delay output to ODELAY input cascade
+//    .CNTVALUEOUT         (               ),  // 9-bit output: Counter value output
+//    .DATAOUT             (w_rxc_idelay   ),  // 1-bit output: Delayed data output
+//    .CASC_IN             (               ),  // 1-bit input: Cascade delay input from slave ODELAY CASCADE_OUT
+//    .CASC_RETURN         (               ),  // 1-bit input: Cascade delay returning from slave ODELAY DATAOUT
+//    .CE                  (               ),  // 1-bit input: Active-High enable increment/decrement input
+//    .CLK                 (               ),  // 1-bit input: Clock input
+//    .CNTVALUEIN          (               ),  // 9-bit input: Counter value input
+//    .DATAIN              (               ),  // 1-bit input: Data input from the logic
+//    .EN_VTC              (               ),  // 1-bit input: Keep delay constant over VT
+//    .IDATAIN             (w_rxc_bufio    ),  // 1-bit input: Data input from the IOBUF
+//    .INC                 (               ),  // 1-bit input: Increment / Decrement tap delay input
+//    .LOAD                (               ),  // 1-bit input: Load DELAY_VALUE input
+//    .RST                 (               )   // 1-bit input: Asynchronous Reset to the DELAY_VALUE
+// );
 
 BUFIO BUFIO_rxc (
    .O(w_rxc_bufio   ), 
@@ -123,8 +132,8 @@ for(rxd_i = 0; rxd_i < 4; rxd_i = rxd_i + 1)begin:txd_ibuf
     IDDRE1_rxd (
     .Q1              (w_recv_data[rxd_i]    ),// 1-bit output: Registered parallel output 1
     .Q2              (w_recv_data[rxd_i+4]  ),// 1-bit output: Registered parallel output 2
-    .C               (w_rxc_idelay          ),// 1-bit input: High-speed clock
-    .CB              (~w_rxc_idelay         ),// 1-bit input: Inversion of High-speed clock C
+    .C               (w_rxc_bufio          ),// 1-bit input: High-speed clock
+    .CB              (~w_rxc_bufio         ),// 1-bit input: Inversion of High-speed clock C
     .D               (w_rxd_ibuf[rxd_i]     ),// 1-bit input: Serial Data Input
     .R               (0                     ) // 1-bit input: Active-High Async Reset
     );
@@ -148,8 +157,8 @@ IDDRE1 #(
 IDDRE1_rxctrl (
 .Q1              (w_recv_valid[0]       ),
 .Q2              (w_recv_valid[1]       ),
-.C               (w_rxc_idelay          ),
-.CB              (~w_rxc_idelay         ),
+.C               (w_rxc_bufio          ),
+.CB              (~w_rxc_bufio         ),
 .D               (w_rx_ctrl_ibuf        ),
 .R               (0                     ) 
 );
@@ -162,7 +171,7 @@ BUFR_rxc (
    .O           (w_rxc_bufr ), // 1-bit output: Clock output port
    .CE          (1          ), // 1-bit input: Active high, clock enable (Divided modes only)
    .CLR         (0          ), // 1-bit input: Active high, asynchronous clear (Divided modes only)
-   .I           (w_rxc_bufio)  // 1-bit input: Clock buffer input driven by an IBUF, MMCM or local interconnect
+   .I           (i_rxc)  // 1-bit input: Clock buffer input driven by an IBUF, MMCM or local interconnect
 );
 //================rgmii tx=====================//
 OBUF OBUF_txc (
@@ -220,6 +229,9 @@ assign o_rx_valid   =   ro_rx_valid ;
 assign o_rx_end     =   ro_rx_end   ;
 
 assign o_rxc        =   w_rxc_bufr  ;
+
+assign o_speed      =   ro_speed    ;
+assign o_link       =   ro_link     ;
 /******************************always*****************************/
 always @(posedge w_rxc_bufr)begin
     if((&w_recv_valid) && !i_speed1000)
@@ -239,7 +251,7 @@ always @(posedge w_rxc_bufr)begin
     if(i_speed1000)
         ro_rx_data <= w_recv_data;
     else
-        ro_rx_data <= {ro_rx_data[3:0],w_recv_data[3:0]};
+        ro_rx_data <= {w_recv_data[3:0],ro_rx_data[7:4]};
 end
 
 always @(posedge w_rxc_bufr)begin
@@ -247,6 +259,17 @@ always @(posedge w_rxc_bufr)begin
         ro_rx_end <= 'd0;
     else
         ro_rx_end <= 'd1;
+end
+
+always @(posedge w_rxc_bufr)begin
+    if(w_recv_valid == 'd0)begin
+        ro_speed <= w_recv_data[2:1];
+        ro_link  <= w_recv_data[0];        
+    end
+    else begin
+        ro_speed <= ro_speed;
+        ro_link  <= ro_link ;
+    end
 end
 //==================gmii tx====================//
 always @(posedge w_rxc_bufr)begin
