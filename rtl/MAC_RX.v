@@ -92,23 +92,23 @@ reg  [31:0]     r_crc_recv                  ;
 /******************************wire*******************************/
 wire [31:0]     w_crc_result                ;
 /******************************component**************************/
-// mac_rx_ila mac_rx_ila_u0 (
-// 	.clk    (i_clk), // input wire clk
+mac_rx_ila mac_rx_ila_u0 (
+	.clk    (i_clk), // input wire clk
 
 
-// 	.probe0 (ri_gmii_data ), // input wire [7:0]  probe0  
-// 	.probe1 (ri_gmii_valid), // input wire [0:0]  probe1 
-// 	.probe2 (ro_recv_src_mac      ), // input wire [47:0]  probe2 
-// 	.probe3 (ro_recv_src_mac_valid), // input wire [0:0]  probe3 
-// 	.probe4 (ro_crc_error), // input wire [0:0]  probe4 
-// 	.probe5 (ro_crc_valid), // input wire [0:0]  probe5 
-// 	.probe6 (r_recv_type   ), // input wire [15:0]  probe6 
-// 	.probe7 (ri_gmii_data_5d ), // input wire [7:0]  probe7 
-// 	.probe8 (ro_post_last   ), // input wire [0:0]  probe8 
-// 	.probe9 (ro_post_valid  ) , 
-// 	.probe10(r_crc_recv), // input wire [31:0]  probe10 
-// 	.probe11(w_crc_result) // input wire [31:0]  probe11
-// );
+	.probe0 (ri_gmii_data ), // input wire [7:0]  probe0  
+	.probe1 (ri_gmii_valid), // input wire [0:0]  probe1 
+	.probe2 (ro_recv_src_mac      ), // input wire [47:0]  probe2 
+	.probe3 (ro_recv_src_mac_valid), // input wire [0:0]  probe3 
+	.probe4 (ro_crc_error), // input wire [0:0]  probe4 
+	.probe5 (ro_crc_valid), // input wire [0:0]  probe5 
+	.probe6 (r_recv_type   ), // input wire [15:0]  probe6 
+	.probe7 (ri_gmii_data_5d ), // input wire [7:0]  probe7 
+	.probe8 (ro_post_last   ), // input wire [0:0]  probe8 
+	.probe9 (ro_post_valid  ) , 
+	.probe10(r_crc_recv), // input wire [31:0]  probe10 
+	.probe11(w_crc_result) // input wire [31:0]  probe11
+);
 
 CRC32_D8 CRC32_D8_u0(
 	.i_clk	(i_clk          ),
@@ -288,7 +288,7 @@ end
 always @(posedge i_clk or posedge i_rst)begin
     if(i_rst)
         r_crc_rst <= 'd1;
-    else if(r_recv_5d_cnt == 6)//除去前导码和校验码的数据才需要进行校验，所以也只需要对打5拍后的数据进行校验
+    else if(r_recv_5d_cnt == 7)//除去前导码和校验码的数据才需要进行校验，所以也只需要对打5拍后的数据进行校验
         r_crc_rst <= 'd0;
     else if(!r_crc_en && r_crc_en_1d)
         r_crc_rst <= 'd1;
@@ -320,7 +320,7 @@ always @(posedge i_clk or posedge i_rst)begin
         r_crc_recv <= 'd0;
     else if(ri_gmii_valid_1d)
         // r_crc_recv <= {r_crc_recv[23:0],ri_gmii_data_1d};
-        r_crc_recv <= {ri_gmii_data_1d,r_crc_recv[31:8]};
+        r_crc_recv <= {ri_gmii_data,r_crc_recv[31:8]};
     else
         r_crc_recv <= r_crc_recv;
 end
