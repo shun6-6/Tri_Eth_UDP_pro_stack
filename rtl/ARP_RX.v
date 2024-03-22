@@ -153,7 +153,7 @@ end
 always @(posedge i_clk or posedge i_rst)begin
     if(i_rst)
         ro_trig_reply <= 'd0;
-    else if(r_recv_arp_cnt == 27 && r_arp_op == P_ARP_OP_REQ && r_recv_dst_ip == r_src_ip)
+    else if(r_recv_arp_cnt == 28 && r_arp_op == P_ARP_OP_REQ && r_recv_dst_ip == r_src_ip)
         ro_trig_reply <= 'd1;
     else
         ro_trig_reply <= 'd0;
