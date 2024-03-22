@@ -20,14 +20,16 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module XCKU040_TOP(
+module XC7A100_TOP(
+    input           clk_in1_p       ,
+
     input           i_rxc           ,
     input  [3:0]    i_rxd           ,
     input           i_rx_ctrl       ,
     output          o_txc           ,
     output [3:0]    o_txd           ,
     output          o_tx_ctrl       ,
-    output          RESETn          
+    output          RESETn         
 );
 
 localparam      P_SEND_LEN  = 100;
@@ -35,7 +37,7 @@ assign          RESETn = 1;
 
 wire            w_user_clk          ;
 wire            w_user_rst          ;
-
+wire            w_txc               ;
 wire [7 :0]     w_recv_udp_data     ;
 wire [15:0]     w_recv_udp_len      ;
 wire            w_recv_udp_last     ;
@@ -58,12 +60,26 @@ reg  [15:0]     r_send_cnt          ;
 // reg  [15:0]     r_pkg_cnt=0         ;
 reg  [15:0]     r_start_cnt         ;
 
+wire ila_clk;
+wire  w_rxc_bufg;
+wire idelay_clk;
+assign w_user_clk = w_rxc_bufg;
+//assign          o_txc = w_txc;
+
 rst_gen_module#(
     .P_RST_CYCLE            (100) 
 )rst_gen_module_u0(
     .i_clk                  (w_user_clk ),
     .o_rst                  (w_user_rst )
 );
+
+ clk_wiz_ila clk_wiz_ila
+ (
+     .clk_out1   (idelay_clk),  
+     .locked     (),    
+     .clk_in1  (clk_in1_p  )
+ );
+
 
 
 ila_udp ila_udp_u0 (
@@ -91,7 +107,9 @@ UDP_Stack_TOP#(
     .P_DST_IP               ({8'd192,8'd168,8'd100,8'd99}              )   ,
     .P_SRC_IP               ({8'd192,8'd168,8'd100,8'd100}              )   ,
     .P_SRC_MAC              ({8'h01,8'h02,8'h03,8'h04,8'h05,8'h06}  )   ,
-    .P_DEST_MAC             ({8'h00,8'h00,8'h00,8'h00,8'h00,8'h00}  )   ,
+    //.P_DEST_MAC             ({8'h00,8'h00,8'h00,8'h00,8'h00,8'h00}  )   ,
+    // .P_DEST_MAC             ({8'hb4,8'hb6,8'h86,8'hd6,8'h83,8'hb8}  )   ,
+    .P_DEST_MAC             ({8'hc0,8'h25,8'ha5,8'hd3,8'ha5,8'h33}  )   ,
     .P_CRC_CHECK            (1                                      )       
 )UDP_Stack_TOP_u0(
     .i_clk                  (w_user_clk ),
@@ -143,6 +161,7 @@ GMII2RGMII_drive GMII2RGMII_drive_u0(
     .o_tx_ctrl              (o_tx_ctrl          ),
 
     //.i_speed1000            (),
+    .idelay_clk(idelay_clk),
     .i_udp_stack_clk        (w_user_clk         ),
     .i_gmii_tx_data         (w_gmii_tx_data     ),
     .i_gmii_tx_valid        (w_gmii_tx_valid    ),

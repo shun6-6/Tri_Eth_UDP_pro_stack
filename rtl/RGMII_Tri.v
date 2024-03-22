@@ -63,6 +63,7 @@ reg  [1 :0]     ro_speed        = 0     ;
 reg             ro_link         = 0     ;
 /******************************wire*******************************/
 wire            w_rxc_bufio         ;
+wire            w_rxc_bufio_90         ;
 wire            w_rxc_idelay        ;
 wire            w_rxc_bufr          ;
 wire [3 :0]     w_rxd_ibuf          ;
@@ -70,47 +71,54 @@ wire            w_rx_ctrl_ibuf      ;
 wire [7 :0]     w_recv_data         ;
 wire [1 :0]     w_recv_valid        ;
 
-wire [3 :0]     w_send_d1           ;//上升沿数据
-wire [3 :0]     w_send_d2           ;//下降沿数据
+wire [3 :0]     w_send_d1           ;//上升沿数�?
+wire [3 :0]     w_send_d2           ;//下降沿数�?
 wire            w_send_valid_d1     ;
-wire            w_send_valid_d2     ;    
+wire            w_send_valid_d2     ; 
+wire            w_send_valid        ;   
+
+wire            w_txc               ;
 
 wire            i_speed1000         ;
 assign          i_speed1000 = 1     ;
+
+wire            w_txc_90            ;
+wire  locked;
+wire  locked_1;
 /******************************component**************************/
+
 //================rgmii rx=====================//
-// IDELAYE3 #(
-//    .CASCADE             ("NONE"         ),  // Cascade setting (MASTER, NONE, SLAVE_END, SLAVE_MIDDLE)
-//    .DELAY_FORMAT        ("TIME"         ),  // Units of the DELAY_VALUE (COUNT, TIME)
-//    .DELAY_SRC           ("IDATAIN"      ),  // Delay input (DATAIN, IDATAIN)
-//    .DELAY_TYPE          ("FIXED"        ),  // Set the type of tap delay line (FIXED, VARIABLE, VAR_LOAD)
-//    .DELAY_VALUE         (0              ),  // Input delay value setting
-//    .IS_CLK_INVERTED     (1'b0           ),  // Optional inversion for CLK
-//    .IS_RST_INVERTED     (1'b0           ),  // Optional inversion for RST
-//    .REFCLK_FREQUENCY    (300.0          ),  // IDELAYCTRL clock input frequency in MHz (200.0-800.0)
-//    .SIM_DEVICE          ("ULTRASCALE"   ),  // Set the device version for simulation functionality (ULTRASCALE)
-//    .UPDATE_MODE         ("ASYNC"        )   // Determines when updates to the delay will take effect (ASYNC, MANUAL, SYNC)
-// )
-// IDELAYE3_inst (
-//    .CASC_OUT            (               ),  // 1-bit output: Cascade delay output to ODELAY input cascade
-//    .CNTVALUEOUT         (               ),  // 9-bit output: Counter value output
-//    .DATAOUT             (w_rxc_idelay   ),  // 1-bit output: Delayed data output
-//    .CASC_IN             (               ),  // 1-bit input: Cascade delay input from slave ODELAY CASCADE_OUT
-//    .CASC_RETURN         (               ),  // 1-bit input: Cascade delay returning from slave ODELAY DATAOUT
-//    .CE                  (               ),  // 1-bit input: Active-High enable increment/decrement input
-//    .CLK                 (               ),  // 1-bit input: Clock input
-//    .CNTVALUEIN          (               ),  // 9-bit input: Counter value input
-//    .DATAIN              (               ),  // 1-bit input: Data input from the logic
-//    .EN_VTC              (               ),  // 1-bit input: Keep delay constant over VT
-//    .IDATAIN             (w_rxc_bufio    ),  // 1-bit input: Data input from the IOBUF
-//    .INC                 (               ),  // 1-bit input: Increment / Decrement tap delay input
-//    .LOAD                (               ),  // 1-bit input: Load DELAY_VALUE input
-//    .RST                 (               )   // 1-bit input: Asynchronous Reset to the DELAY_VALUE
+
+ila_rgmii ila_rgmii_u0 (
+	.clk(w_txc), // input wire clk
+
+	.probe0(ri_tx_data ), // input wire [7:0]  probe0  
+	.probe1(ri_tx_valid), // input wire [0:0]  probe1 
+	.probe2(w_send_d1), // input wire [3:0]  probe2 
+	.probe3(w_send_d2), // input wire [3:0]  probe3 
+	.probe4(w_send_valid) // input wire [0:0]  probe4
+);
+
+// ila_rgmii ila_rgmii_u1 (
+// 	.clk(w_rxc_bufr), // input wire clk
+
+// 	.probe0(o_rx_data ), // input wire [7:0]  probe0  
+// 	.probe1(w_recv_data), // input wire [0:0]  probe1 
+// 	.probe2(0), // input wire [3:0]  probe2 
+// 	.probe3(0), // input wire [3:0]  probe3 
+// 	.probe4(0) // input wire [0:0]  probe4
 // );
 
 BUFIO BUFIO_rxc (
    .O(w_rxc_bufio   ), 
    .I(i_rxc         )  
+);
+
+clk_wiz_0 clk_wiz_0_u1
+(
+    .clk_out1   (w_rxc_bufio_90   ),    
+    .locked     (locked_1     ),     
+    .clk_in1    (w_rxc_bufio      )      
 );
 
 genvar rxd_i;
@@ -132,8 +140,8 @@ for(rxd_i = 0; rxd_i < 4; rxd_i = rxd_i + 1)begin:txd_ibuf
     IDDRE1_rxd (
     .Q1              (w_recv_data[rxd_i]    ),// 1-bit output: Registered parallel output 1
     .Q2              (w_recv_data[rxd_i+4]  ),// 1-bit output: Registered parallel output 2
-    .C               (w_rxc_bufio          ),// 1-bit input: High-speed clock
-    .CB              (~w_rxc_bufio         ),// 1-bit input: Inversion of High-speed clock C
+    .C               (w_rxc_bufio_90          ),// 1-bit input: High-speed clock
+    .CB              (~w_rxc_bufio_90         ),// 1-bit input: Inversion of High-speed clock C
     .D               (w_rxd_ibuf[rxd_i]     ),// 1-bit input: Serial Data Input
     .R               (0                     ) // 1-bit input: Active-High Async Reset
     );
@@ -157,8 +165,8 @@ IDDRE1 #(
 IDDRE1_rxctrl (
 .Q1              (w_recv_valid[0]       ),
 .Q2              (w_recv_valid[1]       ),
-.C               (w_rxc_bufio          ),
-.CB              (~w_rxc_bufio         ),
+.C               (w_rxc_bufio_90          ),
+.CB              (~w_rxc_bufio_90         ),
 .D               (w_rx_ctrl_ibuf        ),
 .R               (0                     ) 
 );
@@ -174,19 +182,27 @@ BUFR_rxc (
    .I           (i_rxc)  // 1-bit input: Clock buffer input driven by an IBUF, MMCM or local interconnect
 );
 //================rgmii tx=====================//
+clk_wiz_0 clk_wiz_0_u0
+(
+    .clk_out1   (w_txc_90   ),    
+    .locked     (locked     ),     
+    .clk_in1    (w_txc      )      
+);
+
+assign w_txc = w_rxc_bufr;
 OBUF OBUF_txc (
    .O(o_txc         ), // 1-bit output: Buffer output (connect directly to top-level port)
-   .I(w_rxc_bufr    )  // 1-bit input: Buffer input
+   .I(w_txc_90      )  // 1-bit input: Buffer input
 );
 
 genvar txd_i;
 generate
 for(txd_i = 0; txd_i < 4; txd_i = txd_i + 1)begin:txd_oddr
-//如果不是千兆，则上升沿和下降沿发送数据一致
+//如果不是千兆，则上升沿和下降沿发送数据一�?
     assign w_send_d1[txd_i] =   i_speed1000 ? i_tx_data[txd_i]   : 
-                                r_10_100_tx_cnt == 0 ? i_tx_data[3:0] : ri_tx_data[7:4];
+                                r_10_100_tx_cnt == 0 ? i_tx_data[txd_i] : ri_tx_data[txd_i+4];
     assign w_send_d2[txd_i] =   i_speed1000 ? i_tx_data[txd_i+4] : 
-                                r_10_100_tx_cnt == 0 ? i_tx_data[3:0] : ri_tx_data[7:4];
+                                r_10_100_tx_cnt == 0 ? i_tx_data[txd_i] : ri_tx_data[txd_i+4];
 
     ODDRE1 #(
     .IS_C_INVERTED   (1'b0              ), // Optional inversion for C
@@ -197,9 +213,9 @@ for(txd_i = 0; txd_i < 4; txd_i = txd_i + 1)begin:txd_oddr
     )
     ODDRE1_txd (
     .Q               (o_txd[txd_i]      ), // 1-bit output: Data output to IOB
-    .C               (w_rxc_bufr        ), // 1-bit input: High-speed clock input
-    .D1              (w_send_d1         ), // 1-bit input: Parallel data input 1
-    .D2              (w_send_d2         ), // 1-bit input: Parallel data input 2
+    .C               (w_txc             ), // 1-bit input: High-speed clock input
+    .D1              (w_send_d1[txd_i]  ), // 1-bit input: Parallel data input 1
+    .D2              (w_send_d2[txd_i]  ), // 1-bit input: Parallel data input 2
     .SR              (0                 )  // 1-bit input: Active-High Async Reset
     );
 end
@@ -217,7 +233,7 @@ ODDRE1 #(
 )
 ODDRE1_txctrl (
    .Q               (o_tx_ctrl          ), // 1-bit output: Data output to IOB
-   .C               (w_rxc_bufr         ), // 1-bit input: High-speed clock input
+   .C               (w_txc              ), // 1-bit input: High-speed clock input
    .D1              (w_send_valid       ), // 1-bit input: Parallel data input 1
    .D2              (w_send_valid       ), // 1-bit input: Parallel data input 2
    .SR              (0                  )  // 1-bit input: Active-High Async Reset

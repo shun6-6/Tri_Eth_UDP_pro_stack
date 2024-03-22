@@ -47,7 +47,7 @@ module MAC_TX#(
 /******************************function***************************/
 
 /******************************parameter**************************/
-localparam      P_GAP_LEN   =   10;
+localparam      P_GAP_LEN   =   30;
 /******************************port*******************************/
 
 /******************************machine****************************/
@@ -105,9 +105,9 @@ MAC_TX_FIFO_8x512 MAC_TX_FIFO_8x512_u0 (
   .rd_en            (r_fifo_rden    ), 
   .dout             (w_fifo_rdata   ), 
   .full             (w_fifo_full    ), 
-  .empty            (w_fifo_empty   ), 
-  .wr_rst_busy      (), 
-  .rd_rst_busy      ()  
+  .empty            (w_fifo_empty   )
+  //.wr_rst_busy      (), 
+  //.rd_rst_busy      ()  
 );
 
 FIFO_16x64 FIFO_16x64_len (
@@ -146,13 +146,21 @@ always @(posedge i_clk or posedge i_rst)begin
         r_src_mac  <= r_src_mac ;
 end
 //目的mac地址可设置
+// always @(posedge i_clk or posedge i_rst)begin
+//     if(i_rst)
+//         r_dest_mac <= P_DEST_MAC;              
+//     else if(i_dest_mac_valid)
+//         r_dest_mac <= i_dest_mac;          
+//     else 
+//         r_dest_mac <= r_dest_mac;
+// end
 always @(posedge i_clk or posedge i_rst)begin
     if(i_rst)
         r_dest_mac <= P_DEST_MAC;              
     else if(i_dest_mac_valid)
-        r_dest_mac <= i_dest_mac;          
+        r_dest_mac <= P_DEST_MAC;          
     else 
-        r_dest_mac <= r_dest_mac;
+        r_dest_mac <= P_DEST_MAC;
 end
 //输入寄存
 always @(posedge i_clk or posedge i_rst)begin
@@ -330,10 +338,10 @@ always @(posedge i_clk or posedge i_rst)begin
     else if(r_mac_data_valid)
         ro_gmii_data <= r_mac_data;            
     else case (r_crc_out_cnt)
-        0       : ro_gmii_data <= w_crc_result[31:24];
-        1       : ro_gmii_data <= w_crc_result[23:16];
-        2       : ro_gmii_data <= w_crc_result[15: 8];
-        3       : ro_gmii_data <= w_crc_result[7 : 0];
+        3       : ro_gmii_data <= w_crc_result[31:24];
+        2       : ro_gmii_data <= w_crc_result[23:16];
+        1       : ro_gmii_data <= w_crc_result[15: 8];
+        0       : ro_gmii_data <= w_crc_result[7 : 0];
         default : ro_gmii_data <= 'd0; 
     endcase
 end
@@ -374,12 +382,12 @@ end
 
 always @(posedge i_clk or posedge i_rst)begin
     if(i_rst)
-        r_gap_cnt <= 'd0;  
+        r_gap_cnt <= 'd1;  
     else if(ro_gmii_valid) 
         r_gap_cnt <= 'd0; 
     else if(r_gap_cnt == P_GAP_LEN) 
-        r_gap_cnt <= 'd1;  
-    else if(!ro_gmii_valid && ro_gmii_valid_1d)
+        r_gap_cnt <= r_gap_cnt;  
+    else if((!ro_gmii_valid && ro_gmii_valid_1d) || r_gap_cnt)
         r_gap_cnt <= r_gap_cnt + 'd1;  
     else 
         r_gap_cnt <= r_gap_cnt;  

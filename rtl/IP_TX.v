@@ -95,9 +95,9 @@ MAC_TX_FIFO_8x512 IP_TX_FIFO_8x512_u0 (
   .rd_en            (r_fifo_rden    ), 
   .dout             (w_fifo_rdata   ), 
   .full             (w_fifo_full    ), 
-  .empty            (w_fifo_empty   ), 
-  .wr_rst_busy      (), 
-  .rd_rst_busy      ()  
+  .empty            (w_fifo_empty   )
+  //.wr_rst_busy      (), 
+  //.rd_rst_busy      ()  
 );
 /******************************assign*****************************/
 assign  o_mac_valid     =   r_ip_data_valid ;

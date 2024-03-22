@@ -92,6 +92,24 @@ reg  [31:0]     r_crc_recv                  ;
 /******************************wire*******************************/
 wire [31:0]     w_crc_result                ;
 /******************************component**************************/
+// mac_rx_ila mac_rx_ila_u0 (
+// 	.clk    (i_clk), // input wire clk
+
+
+// 	.probe0 (ri_gmii_data ), // input wire [7:0]  probe0  
+// 	.probe1 (ri_gmii_valid), // input wire [0:0]  probe1 
+// 	.probe2 (ro_recv_src_mac      ), // input wire [47:0]  probe2 
+// 	.probe3 (ro_recv_src_mac_valid), // input wire [0:0]  probe3 
+// 	.probe4 (ro_crc_error), // input wire [0:0]  probe4 
+// 	.probe5 (ro_crc_valid), // input wire [0:0]  probe5 
+// 	.probe6 (r_recv_type   ), // input wire [15:0]  probe6 
+// 	.probe7 (ri_gmii_data_5d ), // input wire [7:0]  probe7 
+// 	.probe8 (ro_post_last   ), // input wire [0:0]  probe8 
+// 	.probe9 (ro_post_valid  ) , 
+// 	.probe10(r_crc_recv), // input wire [31:0]  probe10 
+// 	.probe11(w_crc_result) // input wire [31:0]  probe11
+// );
+
 CRC32_D8 CRC32_D8_u0(
 	.i_clk	(i_clk          ),
 	.i_rst	(r_crc_rst      ),
@@ -212,7 +230,7 @@ always @(posedge i_clk or posedge i_rst)begin
     if(i_rst)
         ro_recv_src_mac <= 'd0;
     else if(r_recv_cnt >= 13 && r_recv_cnt <= 18)
-        ro_recv_src_mac <= {r_recv_mac[39:0],ri_gmii_data};
+        ro_recv_src_mac <= {ro_recv_src_mac[39:0],ri_gmii_data};
     else
         ro_recv_src_mac <= ro_recv_src_mac;
 end
@@ -301,7 +319,8 @@ always @(posedge i_clk or posedge i_rst)begin
     if(i_rst)
         r_crc_recv <= 'd0;
     else if(ri_gmii_valid_1d)
-        r_crc_recv <= {r_crc_recv[23:0],ri_gmii_data_1d};
+        // r_crc_recv <= {r_crc_recv[23:0],ri_gmii_data_1d};
+        r_crc_recv <= {ri_gmii_data_1d,r_crc_recv[31:8]};
     else
         r_crc_recv <= r_crc_recv;
 end

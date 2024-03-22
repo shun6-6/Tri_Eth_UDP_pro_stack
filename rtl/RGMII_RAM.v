@@ -40,7 +40,7 @@ module RGMII_RAM(
 /******************************function***************************/
 
 /******************************parameter**************************/
-
+localparam      P_GAP   =   4   ;
 /******************************port*******************************/
 
 /******************************machine****************************/
@@ -51,20 +51,21 @@ reg             ro_gmii_rx_valid    = 0 ;
 reg  [7 :0]     ro_tx_data          = 0 ;
 reg             ro_tx_valid         = 0 ;
 //recv port 
-reg  [10:0]     r_ram_addr_a        = 0 ;
-reg  [10:0]     r_ram_addr_b        = 0 ;
+reg  [11:0]     r_ram_addr_a        = 0 ;
+reg  [11:0]     r_ram_addr_b        = 0 ;
 reg             r_ram_en_b          = 0 ;
 reg             r_ram_en_b_1d       = 0 ;
 reg             r_fifo_wren         = 0 ;
 reg             r_fifo_rden         = 0 ;
 
+reg             ri_rx_end           = 0 ;
 reg  [10:0]     r_recv_len          = 0 ;
 reg             ri_rx_valid         = 0 ;
 reg             r_read_run          = 0 ;
 reg  [15:0]     r_read_cnt          = 0 ;
 //send port 
-reg  [10:0]     r_tx_ram_addr_a     = 0 ;
-reg  [10:0]     r_tx_ram_addr_b     = 0 ;
+reg  [11:0]     r_tx_ram_addr_a     = 0 ;
+reg  [11:0]     r_tx_ram_addr_b     = 0 ;
 reg             r_tx_ram_en_b       = 0 ;
 reg             r_tx_ram_en_b_1d    = 0 ;
 reg  [10:0]     r_send_len          = 0 ;
@@ -74,6 +75,9 @@ reg             r_tx_read_run       = 0 ;
 reg  [15:0]     r_tx_read_cnt       = 0 ;
 
 reg             ri_gmii_tx_valid    = 0 ;
+reg  [7 :0]     r_gap_cnt           = 0 ;
+
+reg  [7 :0]     r_initil_cnt        = 0 ;
 /******************************wire*******************************/
 wire [7 :0]     w_ram_dout_b        ;
 wire [10:0]     w_fifo_dout         ;
@@ -84,7 +88,17 @@ wire [7 :0]     w_tx_ram_dout_b     ;
 wire [10:0]     w_tx_fifo_dout      ;
 wire            w_tx_fifo_full      ;
 wire            w_tx_fifo_empty     ;
+
+wire            w_initial_end       ;
 /******************************component**************************/
+// ila_rgmii_ram ila_rgmii_ram_u0 (
+// 	.clk    (i_udp_stack_clk), // input wire clk
+
+// 	.probe0 (o_gmii_rx_data ), // input wire [7:0]  probe0  
+// 	.probe1 (o_gmii_rx_valid), // input wire [0:0]  probe1 
+// 	.probe2 (o_tx_data ), // input wire [7:0]  probe2 
+// 	.probe3 (o_tx_valid) // input wire [0:0]  probe3
+// );
 //=================recv ram and fifo==================
 RAM_8x1526 RAM_8x1526_rx_u0 (
   .clka     (i_rxc              ), 
@@ -145,7 +159,15 @@ assign o_gmii_rx_data   =   ro_gmii_rx_data     ;
 assign o_gmii_rx_valid  =   ro_gmii_rx_valid    ;
 assign o_tx_data        =   ro_tx_data          ;
 assign o_tx_valid       =   ro_tx_valid         ;
+
+assign w_initial_end    =   r_initil_cnt == 15  ;
 /******************************always*****************************/
+always @(posedge i_rxc)begin
+    if(r_initil_cnt == 15)
+        r_initil_cnt <= r_initil_cnt;
+    else
+        r_initil_cnt <= r_initil_cnt + 1;
+end
 //==============rgmii clock=================//
 //recv logic
 always @(posedge i_rxc)begin
@@ -158,8 +180,10 @@ always @(posedge i_rxc)begin
 end
 
 always @(posedge i_rxc)begin
-    if(i_rx_valid)
-        r_recv_len <= r_ram_addr_a;
+    if(r_fifo_wren)
+        r_recv_len <= 'd0;
+    else if(i_rx_valid)
+        r_recv_len <= r_recv_len + 1;
     else
         r_recv_len <= r_recv_len;
 end
@@ -169,48 +193,69 @@ always @(posedge i_rxc)begin
 end
 
 always @(posedge i_rxc)begin
-    if(!i_rx_valid & ri_rx_valid)
+    ri_rx_end <= i_rx_end;
+end
+
+always @(posedge i_rxc)begin
+    if(!i_rx_end & ri_rx_end)
         r_fifo_wren <= 1;
     else
         r_fifo_wren <= 0;
 end
 //send logic
 always @(posedge i_rxc)begin
-    if(r_tx_read_cnt == w_tx_fifo_dout)
-        r_tx_read_run <= 'd0;
-    else if(!w_fifo_empty)
-        r_tx_read_run <= 'd1;
+    if(i_speed1000)
+        if(r_tx_read_cnt && (r_tx_read_cnt == w_tx_fifo_dout - 1))
+            r_tx_read_run <= 'd0;
+        else if(!r_tx_read_run && !w_tx_fifo_empty && r_gap_cnt == 0 && w_initial_end)
+            r_tx_read_run <= 'd1;
+        else
+            r_tx_read_run <= r_tx_read_run;
     else
-        r_tx_read_run <= r_tx_read_run;
+        if(r_tx_read_cnt && (r_tx_read_cnt == w_tx_fifo_dout - 1) && r_tx_ram_en_b)
+            r_tx_read_run <= 'd0;
+        else if(!r_tx_read_run && !w_tx_fifo_empty && r_gap_cnt == 0)
+            r_tx_read_run <= 'd1;
+        else
+            r_tx_read_run <= r_tx_read_run;
 end
 
 always @(posedge i_rxc)begin
-    if(!w_tx_fifo_empty && !r_tx_read_run)
+    if(!w_tx_fifo_empty && !r_tx_read_run && r_gap_cnt == 0 && w_initial_end)
         r_tx_fifo_rden <= 'd1; 
     else
         r_tx_fifo_rden <= 'd0; 
 end
 
 always @(posedge i_rxc)begin
-    if(r_tx_read_cnt == w_tx_fifo_dout)
-        r_tx_read_cnt <= 'd0;
-    else if(r_tx_ram_en_b)
-        r_tx_read_cnt <= r_tx_read_cnt + 'd1;
+    if(r_gap_cnt == P_GAP - 2)
+        r_gap_cnt <= 'd0; 
+    else if((r_tx_read_cnt && (r_tx_read_cnt == w_tx_fifo_dout - 1)) && r_gap_cnt)
+        r_gap_cnt <= r_gap_cnt + 'd1; 
     else
-        r_tx_read_cnt <= r_tx_read_cnt;
+        r_gap_cnt <= r_gap_cnt;
 end
 
-// always @(posedge i_rxc)begin
-//     if(r_tx_read_cnt == w_tx_fifo_dout)
-//         r_tx_ram_en_b <= 'd0;
-//     else if(r_tx_fifo_rden)
-//         r_tx_ram_en_b <= 'd1;
-//     else
-//         r_tx_ram_en_b <= r_tx_ram_en_b;
-// end
+always @(posedge i_rxc)begin
+    if(i_speed1000)
+        if(r_tx_read_cnt && (r_tx_read_cnt == w_tx_fifo_dout - 1))
+            r_tx_read_cnt <= 'd0;
+        else if(r_tx_ram_en_b)
+            r_tx_read_cnt <= r_tx_read_cnt + 'd1;
+        else
+            r_tx_read_cnt <= r_tx_read_cnt;
+    else
+        if(r_tx_read_cnt && (r_tx_read_cnt == w_tx_fifo_dout - 1) && r_tx_ram_en_b)
+            r_tx_read_cnt <= 'd0;
+        else if(r_tx_ram_en_b)
+            r_tx_read_cnt <= r_tx_read_cnt + 'd1;
+        else
+            r_tx_read_cnt <= r_tx_read_cnt;
+end
+
 always @(posedge i_rxc)begin
     if(i_speed1000)begin
-        if(r_tx_read_cnt == w_tx_fifo_dout)
+        if(r_tx_read_cnt && (r_tx_read_cnt == w_tx_fifo_dout - 1))
             r_tx_ram_en_b <= 'd0;
         else if(r_tx_fifo_rden)
             r_tx_ram_en_b <= 'd1;
@@ -228,14 +273,16 @@ always @(posedge i_rxc)begin
 end
 
 always @(posedge i_rxc)begin
-    r_tx_ram_en_b_1d <= r_ram_en_b;
+    r_tx_ram_en_b_1d <= r_tx_ram_en_b;
 end
 
 always @(posedge i_rxc)begin
-    if(r_tx_ram_en_b)
+    if(r_tx_ram_addr_b == 2999)
+        r_tx_ram_addr_b <= 'd0;
+    else if(r_tx_ram_en_b)
         r_tx_ram_addr_b <= r_tx_ram_addr_b + 'd1;
     else
-        r_tx_ram_addr_b <= 'd0;
+        r_tx_ram_addr_b <= r_tx_ram_addr_b;
 end
 
 always @(posedge i_rxc)begin
@@ -255,7 +302,7 @@ always @(posedge i_udp_stack_clk)begin
 end
 
 always @(posedge i_udp_stack_clk)begin
-    if(!w_fifo_empty && !r_read_run)
+    if(!w_fifo_empty && !r_read_run && w_initial_end)
         r_fifo_rden <= 'd1; 
     else
         r_fifo_rden <= 'd0; 
@@ -297,15 +344,19 @@ end
 
 //send logic
 always @(posedge i_udp_stack_clk)begin
-    if(i_gmii_tx_valid)
+    if(r_tx_ram_addr_a == 2999)
+        r_tx_ram_addr_a <= 'd0;
+    else if(i_gmii_tx_valid)
         r_tx_ram_addr_a <= r_tx_ram_addr_a + 'd1;
     else
-        r_tx_ram_addr_a <= 'd0;
+        r_tx_ram_addr_a <= r_tx_ram_addr_a;
 end
 
 always @(posedge i_udp_stack_clk)begin
-    if(i_gmii_tx_valid)
-        r_send_len <= r_tx_ram_addr_a;
+    if(r_tx_fifo_rden)
+        r_send_len <= 'd0;
+    else if(i_gmii_tx_valid)
+        r_send_len <= r_send_len + 1;
     else
         r_send_len <= r_send_len;
 end

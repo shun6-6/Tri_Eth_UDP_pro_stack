@@ -131,6 +131,13 @@ wire            w_udp_ready         ;
 
 assign o_send_ready = (!w_nxt_udp_icmp_stop) & (!w_nxt_ip_arp_stop) & w_udp_ready;
 
+// ila_ready ila_ready_u0 (
+// 	.clk    (i_clk), // input wire clk
+// 	.probe0 (w_nxt_udp_icmp_stop), // input wire [0:0]  probe0  
+// 	.probe1 (w_nxt_ip_arp_stop), // input wire [0:0]  probe1 
+// 	.probe2 (w_udp_ready) // input wire [0:0]  probe2
+// );
+
 UDP_module#(
     .P_DST_UDP_PORT     (P_DST_UDP_PORT),
     .P_SRC_UDP_PORT     (P_SRC_UDP_PORT)
