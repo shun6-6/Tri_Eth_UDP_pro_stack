@@ -33,6 +33,7 @@ module XC7A100_TOP(
 );
 
 localparam      P_SEND_LEN  = 100;
+localparam      P_PKT_NUM  = 100;
 assign          RESETn = 1;
 
 wire            w_user_clk          ;
@@ -57,7 +58,7 @@ reg             r_send_udp_valid    ;
 
 reg  [15:0]     r_send_cnt          ;
 // reg  [15:0]     r_gap_cnt           ;
-// reg  [15:0]     r_pkg_cnt=0         ;
+reg  [15:0]     r_pkg_cnt         ;
 reg  [15:0]     r_start_cnt         ;
 
 wire ila_clk;
@@ -104,12 +105,11 @@ ila_udp ila_udp_u0 (
 UDP_Stack_TOP#(
     .P_DST_UDP_PORT         (16'h8080                               )   ,
     .P_SRC_UDP_PORT         (16'h8080                               )   ,
-    .P_DST_IP               ({8'd192,8'd168,8'd100,8'd99}              )   ,
-    .P_SRC_IP               ({8'd192,8'd168,8'd100,8'd100}              )   ,
+    .P_DST_IP               ({8'd192,8'd168,8'd100,8'd99}           )   ,
+    .P_SRC_IP               ({8'd192,8'd168,8'd100,8'd100}          )   ,
     .P_SRC_MAC              ({8'h01,8'h02,8'h03,8'h04,8'h05,8'h06}  )   ,
-    //.P_DEST_MAC             ({8'h00,8'h00,8'h00,8'h00,8'h00,8'h00}  )   ,
-    // .P_DEST_MAC             ({8'hb4,8'hb6,8'h86,8'hd6,8'h83,8'hb8}  )   ,
-    .P_DEST_MAC             ({8'hc0,8'h25,8'ha5,8'hd3,8'ha5,8'h33}  )   ,
+    .P_DEST_MAC             ({8'h00,8'h00,8'h00,8'h00,8'h00,8'h00}  )   ,
+    //.P_DEST_MAC             ({8'hc0,8'h25,8'ha5,8'hd3,8'ha5,8'h33}  )   ,
     .P_CRC_CHECK            (1                                      )       
 )UDP_Stack_TOP_u0(
     .i_clk                  (w_user_clk ),
@@ -200,7 +200,7 @@ always @(posedge w_user_clk or posedge w_user_rst)begin
         r_send_udp_valid <= 'd0;
     else if(r_send_cnt == P_SEND_LEN - 1)
         r_send_udp_valid <= 'd0;
-    else if(r_start_cnt == 100 && w_send_ready)
+    else if(r_start_cnt == 100 && w_send_ready && r_pkg_cnt < P_PKT_NUM)
         r_send_udp_valid <= 'd1;
     else
         r_send_udp_valid <= r_send_udp_valid;
@@ -231,6 +231,16 @@ always @(posedge w_user_clk or posedge w_user_rst)begin
         r_send_udp_len <= P_SEND_LEN;
 end
 
+always @(posedge w_user_clk or posedge w_user_rst)begin
+    if(w_user_rst)
+        r_pkg_cnt <= 'd0;
+    else if(r_pkg_cnt == P_PKT_NUM)
+        r_pkg_cnt <= r_pkg_cnt;
+    else if(r_send_udp_last)
+        r_pkg_cnt <= r_pkg_cnt + 'd1;
+    else
+        r_pkg_cnt <= r_pkg_cnt;
+end
 
 
 endmodule

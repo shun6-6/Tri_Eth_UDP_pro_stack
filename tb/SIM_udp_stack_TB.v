@@ -261,15 +261,15 @@ UDP_Stack_TOP#(
     .o_recv_src_ip          (),
     .o_recv_src_valid       (),
 
-    .i_gmii_data            (w_gmii_data_icmp   ),
-    .i_gmii_valid           (w_gmii_valid_icmp  ),
+    .i_gmii_data            (w_gmii_data_arp   ),
+    .i_gmii_valid           (w_gmii_valid_arp  ),
     .o_gmii_data            (          ),
     .o_gmii_valid           (          ) 
 );
 
 ARP_TX#(
-    .P_DST_IP           ({8'd192,8'd168,8'd01,8'd0}           ),
-    .P_SRC_IP           ({8'd192,8'd168,8'd01,8'd1}           ),
+    .P_DST_IP           ({8'd192,8'd168,8'd01,8'd1}           ),
+    .P_SRC_IP           ({8'd192,8'd168,8'd01,8'd0}           ),
     .P_SRC_MAC          ({8'h00,8'h00,8'h00,8'h00,8'h00,8'h01})
 )ARP_TX_u0(
     .i_clk              (clk          ),
