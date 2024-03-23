@@ -33,9 +33,9 @@ module RGMII_RAM(
     output          o_tx_valid      ,  
 
     input           i_speed1000     ,
-    input  [7 :0]   i_rx_data       ,
-    input           i_rx_valid      ,      
-    input           i_rx_end        
+    (* mark_debug = "true" *)input  [7 :0]   i_rx_data       ,
+    (* mark_debug = "true" *)input           i_rx_valid      ,      
+    (* mark_debug = "true" *)input           i_rx_end        
 );
 /******************************function***************************/
 
@@ -55,6 +55,7 @@ reg  [11:0]     r_ram_addr_a        = 0 ;
 reg  [11:0]     r_ram_addr_b        = 0 ;
 reg             r_ram_en_b          = 0 ;
 reg             r_ram_en_b_1d       = 0 ;
+reg             r_ram_en_b_2d       = 0 ;
 reg             r_fifo_wren         = 0 ;
 reg             r_fifo_rden         = 0 ;
 
@@ -197,7 +198,7 @@ always @(posedge i_rxc)begin
 end
 
 always @(posedge i_rxc)begin
-    if(!i_rx_end & ri_rx_end)
+    if(i_rx_end & !ri_rx_end)
         r_fifo_wren <= 1;
     else
         r_fifo_wren <= 0;
@@ -328,6 +329,20 @@ end
 
 always @(posedge i_udp_stack_clk)begin
     r_ram_en_b_1d <= r_ram_en_b;
+    r_ram_en_b_2d <= r_ram_en_b_1d;
+end
+
+always @(posedge i_udp_stack_clk)begin
+    ro_gmii_rx_data <= w_ram_dout_b;
+end
+
+always @(posedge i_udp_stack_clk)begin
+    if(!r_ram_en_b & r_ram_en_b_1d)
+        ro_gmii_rx_valid <= 'd0;
+    else if(r_ram_en_b_1d & !r_ram_en_b_2d)
+        ro_gmii_rx_valid <= 'd1;
+    else
+        ro_gmii_rx_valid <= ro_gmii_rx_valid;
 end
 
 always @(posedge i_udp_stack_clk)begin
@@ -335,11 +350,6 @@ always @(posedge i_udp_stack_clk)begin
         r_ram_addr_b <= r_ram_addr_b + 'd1;
     else
         r_ram_addr_b <= 'd0;
-end
-
-always @(posedge i_udp_stack_clk)begin
-    ro_gmii_rx_valid <= r_ram_en_b_1d;
-    ro_gmii_rx_data <= w_ram_dout_b;
 end
 
 //send logic
